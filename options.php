@@ -33,8 +33,9 @@ if ((!empty($save) || !empty($restore)) && $request->isPost() && check_bitrix_se
         ));
     } elseif ($request->getPost('active') || $request->getPost('iblock_type') || $request->getPost('time') || $request->getPost('email') || $request->getPost('EventMessageId')) {
         $active = "N";
-        if ($request->getPost('active')=='Y')
+        if ($request->getPost('active')=='Y') {
             $active = "Y";
+        }
         Option::set(
             ADMIN_MODULE_NAME,
             "active",
@@ -60,16 +61,25 @@ if ((!empty($save) || !empty($restore)) && $request->isPost() && check_bitrix_se
             "EventMessageId",
             $request->getPost('EventMessageId')
         );
+        Option::set(
+            ADMIN_MODULE_NAME,
+            "AgentId",
+            $request->getPost('AgentId')
+        );
         // Если меняется период, то изменяем агента
-        if ($request->getPost('time') > 0) {
+        $time = $request->getPost('time');
+        if ($time > 0) {
             Option::set(
                 ADMIN_MODULE_NAME,
                 "time",
-                $request->getPost('time')
+                $time
             );
-            $AgentId = Option::get(ADMIN_MODULE_NAME, "AgentId", '');
-            CAgent::Update($AgentId, array('interval' => 60 * 60 * 24 * $request->getPost('time')));
         }
+
+        $AgentId = Option::get(ADMIN_MODULE_NAME, "AgentId", '');
+        if ($AgentId > 0)
+            CAgent::Update($AgentId, array('ACTIVE' => $active, 'AGENT_INTERVAL' => 60 * 60 * 24 * $request->getPost('time')));
+
         CAdminMessage::showMessage(array(
             "MESSAGE" => "Настройки сохранены",
             "TYPE" => "OK",
@@ -114,12 +124,7 @@ $tabControl->begin();
         <td width="40%">
             <label for="date"><?="Дата последнего обновления" ?>:</label>
         <td width="60%">
-            <?echo CalendarDate("date", htmlspecialcharsbx($a_NEXT_EXEC), "f_log", 20)?>
-            <input type="text"
-                   size="50"
-                   name="date"
-                   value="<?=Option::get(ADMIN_MODULE_NAME, "date", gmdate('Y-m-d h:m:s', time()));?>"
-            />
+            <?echo CAdminCalendar::CalendarDate("date", Option::get(ADMIN_MODULE_NAME, "date", date('Y-m-d h:m:s')), 20, true)?>
         </td>
     </tr>
     <tr>
@@ -155,6 +160,18 @@ $tabControl->begin();
                    maxlength="50"
                    name="EventMessageId"
                    value="<?=Option::get(ADMIN_MODULE_NAME, "EventMessageId", '');?>"
+            />
+        </td>
+    </tr>
+    <tr>
+        <td width="40%">
+            <label for="EventMessageId"><?="ID Агента" ?>:</label>
+        <td width="60%">
+            <input type="text"
+                   size="50"
+                   maxlength="50"
+                   name="AgentId"
+                   value="<?=Option::get(ADMIN_MODULE_NAME, "AgentId", '');?>"
             />
         </td>
     </tr>

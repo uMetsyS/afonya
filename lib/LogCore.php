@@ -255,6 +255,6 @@ class LogCore {
         if ($email) // Если письмо отправлено - обновляем дату
             self::dateChange($date['to']);
 
-        return "Afonya\NewsLog\Main::AgentSendEmail();";
+        return "Afonya\NewsLog\LogCore::AgentSendEmail();";
     }
 }
