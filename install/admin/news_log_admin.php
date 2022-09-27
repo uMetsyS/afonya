@@ -1,3 +1,3 @@
-<?
-require_once($_SERVER["DOCUMENT_ROOT"]."/local/modules/news_log/admin/index.php");
-?>
+<?php
+
+require_once($_SERVER["DOCUMENT_ROOT"] . "/local/modules/afonya_newslog/admin/index.php");

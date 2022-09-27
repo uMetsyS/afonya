@@ -1,31 +1,32 @@
-<?
+<?php
+
 defined('B_PROLOG_INCLUDED') and (B_PROLOG_INCLUDED === true) or die();
 
 use Bitrix\Main\Application;
 use Bitrix\Main\Loader;
 use Bitrix\Main\EventManager;
 use Bitrix\Main\Config\Option;
-use Afonya\NewsLog\LogTable;
+use Afonya\NewsLog\Table;
+use Bitrix\Main\Type\DateTime;
 
-Class news_log extends CModule
+class Afonya_NewsLog extends CModule
 {
-    var $MODULE_ID = "news_log";
+    var $MODULE_ID = "afonya_newslog";
     var $MODULE_VERSION;
     var $MODULE_VERSION_DATE;
     var $MODULE_NAME;
     var $MODULE_DESCRIPTION;
     var $MODULE_CSS;
 
-    function news_log()
+    function Afonya_NewsLog()
     {
         $arModuleVersion = [];
 
         $path = str_replace("\\", "/", __FILE__);
         $path = substr($path, 0, strlen($path) - strlen("/index.php"));
-        include($path."/version.php");
+        include($path . "/version.php");
 
-        if (is_array($arModuleVersion) && array_key_exists("VERSION", $arModuleVersion))
-        {
+        if (is_array($arModuleVersion) && array_key_exists("VERSION", $arModuleVersion)) {
             $this->MODULE_VERSION = $arModuleVersion["VERSION"];
             $this->MODULE_VERSION_DATE = $arModuleVersion["VERSION_DATE"];
         }
@@ -36,15 +37,22 @@ Class news_log extends CModule
 
     function InstallFiles()
     {
-        CopyDirFiles($_SERVER["DOCUMENT_ROOT"]."/local/modules/news_log/install/admin",
-            $_SERVER["DOCUMENT_ROOT"]."/bitrix/admin", true, true);
+        CopyDirFiles(
+            $_SERVER["DOCUMENT_ROOT"] . "/local/modules/afonya_newslog/install/admin",
+            $_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin",
+            true,
+            true
+        );
         return true;
     }
 
     function UnInstallFiles()
     {
-        DeleteDirFiles($_SERVER["DOCUMENT_ROOT"]."/bitrix/modules/news_log/install/a
-dmin", $_SERVER["DOCUMENT_ROOT"]."/bitrix/admin");
+        DeleteDirFiles(
+            $_SERVER["DOCUMENT_ROOT"] . "/bitrix/modules/afonya_newslog/install/a
+dmin",
+            $_SERVER["DOCUMENT_ROOT"] . "/bitrix/admin"
+        );
         return true;
     }
 
@@ -57,19 +65,37 @@ dmin", $_SERVER["DOCUMENT_ROOT"]."/bitrix/admin");
         $this->InstallFiles();
         // Отслеживание событий
         $eventManager = EventManager::getInstance();
-        $eventManager->registerEventHandler("iblock", "OnAfterIBlockElementUpdate", $this->MODULE_ID, "Afonya\NewsLog\LogCore", "onAfterElementUpdateHandler");
-        $eventManager->registerEventHandler("iblock", "onAfterIBlockElementAdd", $this->MODULE_ID, "Afonya\NewsLog\LogCore", "onAfterElementAddHandler");
-        $eventManager->registerEventHandler("iblock", "OnAfterIBlockElementDelete", $this->MODULE_ID, "Afonya\NewsLog\LogCore", "onAfterElementDeleteHandler");
+        $eventManager->registerEventHandler(
+            "iblock",
+            "OnAfterIBlockElementUpdate",
+            $this->MODULE_ID,
+            "Afonya\NewsLog\Handler",
+            "onAfterElementUpdateHandler"
+        );
+        $eventManager->registerEventHandler(
+            "iblock",
+            "onAfterIBlockElementAdd",
+            $this->MODULE_ID,
+            "Afonya\NewsLog\Handler",
+            "onAfterElementAddHandler"
+        );
+        $eventManager->registerEventHandler(
+            "iblock",
+            "OnAfterIBlockElementDelete",
+            $this->MODULE_ID,
+            "Afonya\NewsLog\Handler",
+            "onAfterElementDeleteHandler"
+        );
 
         // Создание таблиц БД
         $this->installDB();
 
         // Добавляем событие
         CEventType::Add(array(
-            "LID"           => "ru",
-            "EVENT_NAME"    => "NEWS_LOG_EVENT",
-            "NAME"          => "Отправка отчета по изменениям",
-            "DESCRIPTION"   => "
+            "LID" => "ru",
+            "EVENT_NAME" => "NEWS_LOG_EVENT",
+            "NAME" => "Отправка отчета по изменениям",
+            "DESCRIPTION" => "
             #EMAIL_TO# - EMail получателя сообщения (#OWNER_EMAIL#)
             #MESSAGE# - Сообщение
             #SUBJECT# - Тема
@@ -78,14 +104,14 @@ dmin", $_SERVER["DOCUMENT_ROOT"]."/bitrix/admin");
 
         $em = new CEventMEssage;
         $EventMessageId = $em->Add(array(
-            'ACTIVE'     => "Y",
+            'ACTIVE' => "Y",
             'EVENT_NAME' => "NEWS_LOG_EVENT",
-            "LID"        => array("s1"),
+            "LID" => array("s1"),
             "EMAIL_FROM" => "#DEFAULT_EMAIL_FROM#",
-            "EMAIL_TO"   => "#EMAIL_TO#",
-            "SUBJECT"    => "#SUBJECT#",
-            "BODY_TYPE"  => "text",
-            "MESSAGE"    => "#MESSAGE#"
+            "EMAIL_TO" => "#EMAIL_TO#",
+            "SUBJECT" => "#SUBJECT#",
+            "BODY_TYPE" => "text",
+            "MESSAGE" => "#MESSAGE#"
         ));
         Option::set(
             $this->MODULE_ID,
@@ -93,9 +119,16 @@ dmin", $_SERVER["DOCUMENT_ROOT"]."/bitrix/admin");
             $EventMessageId
         );
 
+        // Установка даты старта отсчета
+        Option::set(
+            $this->MODULE_ID,
+            "date",
+            new DateTime()
+        );
+
         // Добавляем агента
         $AgentId = CAgent::AddAgent(
-            "Afonya\NewsLog\LogCore::AgentSendEmail();",
+            "Afonya\NewsLog\Mail::AgentSendEmail();",
             "{$this->MODULE_ID}",
             "Y",
             60 * 60 * 24 * 7,
@@ -109,7 +142,10 @@ dmin", $_SERVER["DOCUMENT_ROOT"]."/bitrix/admin");
             $AgentId
         );
 
-        $APPLICATION->IncludeAdminFile("Установка модуля news_log", $DOCUMENT_ROOT."/local/modules/news_log/install/step.php");
+        $APPLICATION->IncludeAdminFile(
+            "Установка модуля afonya_newslog",
+            $DOCUMENT_ROOT . "/local/modules/afonya_newslog/install/step.php"
+        );
     }
 
     function DoUninstall()
@@ -118,14 +154,33 @@ dmin", $_SERVER["DOCUMENT_ROOT"]."/bitrix/admin");
 
         // Удаляем агента
         CAgent::RemoveAgent(
-            "Afonya\NewsLog\LogCore::AgentSendEmail();",
-            "{$this->MODULE_ID}");
+            "Afonya\NewsLog\Mail::AgentSendEmail();",
+            "{$this->MODULE_ID}"
+        );
 
         // Отключение отслеживания событий
         $eventManager = EventManager::getInstance();
-        $eventManager->unRegisterEventHandler("iblock", "OnAfterIBlockElementUpdate", $this->MODULE_ID, "Afonya\NewsLog\LogCore", "onAfterElementUpdateHandler");
-        $eventManager->unRegisterEventHandler("iblock", "onAfterIBlockElementAdd", $this->MODULE_ID, "Afonya\NewsLog\LogCore", "onAfterElementAddHandler");
-        $eventManager->unRegisterEventHandler("iblock", "OnAfterIBlockElementDelete", $this->MODULE_ID, "Afonya\NewsLog\LogCore", "onAfterElementDeleteHandler");
+        $eventManager->unRegisterEventHandler(
+            "iblock",
+            "OnAfterIBlockElementUpdate",
+            $this->MODULE_ID,
+            "Afonya\NewsLog\Handler",
+            "onAfterElementUpdateHandler"
+        );
+        $eventManager->unRegisterEventHandler(
+            "iblock",
+            "onAfterIBlockElementAdd",
+            $this->MODULE_ID,
+            "Afonya\NewsLog\Handler",
+            "onAfterElementAddHandler"
+        );
+        $eventManager->unRegisterEventHandler(
+            "iblock",
+            "OnAfterIBlockElementDelete",
+            $this->MODULE_ID,
+            "Afonya\NewsLog\Handler",
+            "onAfterElementDeleteHandler"
+        );
 
         // Удаление почтового события и шаблона письма
         CEventType::Delete(Option::get($this->MODULE_ID, "EventTypeId"));
@@ -138,13 +193,16 @@ dmin", $_SERVER["DOCUMENT_ROOT"]."/bitrix/admin");
 
         UnRegisterModule($this->MODULE_ID);
 
-        $APPLICATION->IncludeAdminFile("Деинсталляция модуля news_log", $DOCUMENT_ROOT."/local/modules/news_log/install/unstep.php");
+        $APPLICATION->IncludeAdminFile(
+            "Деинсталляция модуля afonya_newslog",
+            $DOCUMENT_ROOT . "/local/modules/afonya_newslog/install/unstep.php"
+        );
     }
 
     public function installDB()
     {
         if (Loader::includeModule($this->MODULE_ID)) {
-            LogTable::getEntity()->createDbTable();
+            Table::getEntity()->createDbTable();
         }
     }
 
@@ -152,8 +210,7 @@ dmin", $_SERVER["DOCUMENT_ROOT"]."/bitrix/admin");
     {
         if (Loader::includeModule($this->MODULE_ID)) {
             $connection = Application::getInstance()->getConnection();
-            $connection->dropTable(LogTable::getTableName());
+            $connection->dropTable(Table::getTableName());
         }
     }
 }
-?>

@@ -1,4 +1,5 @@
 <?php
+
 defined('B_PROLOG_INCLUDED') and (B_PROLOG_INCLUDED === true) or die();
 
 use Bitrix\Main\Localization\Loc;
@@ -16,8 +17,8 @@ $aMenu = array(
         'items' => array(
             array(
                 'text' => "Формирование отчета",
-                'url' => 'news_log_admin.php?action=send&lang='.LANGUAGE_ID,
-                'more_url' => ['news_log_admin.php?action=send&lang='.LANGUAGE_ID],
+                'url' => 'news_log_admin.php?action=send&lang=' . LANGUAGE_ID,
+                'more_url' => ['news_log_admin.php?action=send&lang=' . LANGUAGE_ID],
                 'title' => "Письмо отправлено",
             ),
         ),
