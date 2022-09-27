@@ -1,4 +1,5 @@
 <?php
+
 namespace Afonya\NewsLog;
 
 defined('B_PROLOG_INCLUDED') and (B_PROLOG_INCLUDED === true) or die();
@@ -11,7 +12,7 @@ use Bitrix\Main\Entity\Validator;
 use Bitrix\Main\Localization\Loc;
 use Bitrix\Main\Type\DateTime;
 
-class LogTable extends DataManager
+class Table extends DataManager
 {
     public static function getTableName()
     {
